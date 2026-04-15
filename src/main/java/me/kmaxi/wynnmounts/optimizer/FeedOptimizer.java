@@ -59,7 +59,8 @@ public final class FeedOptimizer {
                             tierPlan.totalFeeds(),
                             tierPlan.totalFeeds() * 6,
                             note,
-                            tier
+                            tier,
+                            0
                     );
                 }
             }
@@ -131,7 +132,7 @@ public final class FeedOptimizer {
                         List<FeedPlan.MaterialCount> combined = new ArrayList<>();
                         combined.add(new FeedPlan.MaterialCount(bestMat, preFeeds));
                         combined.addAll(targetPlan.materials());
-                        bestOptimal = new FeedPlan(combined, totalFeeds, totalFeeds * 6, note, tTarget);
+                        bestOptimal = new FeedPlan(combined, totalFeeds, totalFeeds * 6, note, tTarget, 1);
                     }
                 }
             }
@@ -141,17 +142,65 @@ public final class FeedOptimizer {
     }
 
     /**
-     * Greedy solver: repeatedly pick the material that covers the most remaining deficit.
+     * Greedy solver: multi-start to escape local optima.
+     * Runs once with no forced first pick, then once forcing each material as the
+     * first pick. Returns the plan with the fewest total feeds.
      */
     private static FeedPlan greedySolve(int[] needed, List<Material> materials, String trainingNote, int tier) {
         if (materials.isEmpty()) return FeedPlan.empty(tier);
 
+        boolean anyNeeded = false;
+        for (int n : needed) if (n > 0) { anyNeeded = true; break; }
+        if (!anyNeeded) return FeedPlan.empty(tier);
+
+        int[] bestCounts = greedyCounts(needed, materials, -1);
+        int bestTotal = countSum(bestCounts);
+
+        for (int firstIdx = 0; firstIdx < materials.size(); firstIdx++) {
+            // Skip if this material has zero reduction on the current needs
+            int[] b = materials.get(firstIdx).bonuses();
+            int firstReduction = 0;
+            for (int s = 0; s < 8; s++) firstReduction += Math.min(needed[s], b[s]);
+            if (firstReduction == 0) continue;
+
+            int[] candidate = greedyCounts(needed, materials, firstIdx);
+            int candidateTotal = countSum(candidate);
+            if (candidateTotal < bestTotal) {
+                bestCounts = candidate;
+                bestTotal = candidateTotal;
+            }
+        }
+
+        List<FeedPlan.MaterialCount> result = new ArrayList<>();
+        for (int mi = 0; mi < materials.size(); mi++) {
+            if (bestCounts[mi] > 0) {
+                result.add(new FeedPlan.MaterialCount(materials.get(mi), bestCounts[mi]));
+            }
+        }
+        return new FeedPlan(result, bestTotal, bestTotal * 6, trainingNote, tier, 0);
+    }
+
+    private static int countSum(int[] counts) {
+        int s = 0;
+        for (int c : counts) s += c;
+        return s;
+    }
+
+    /**
+     * One greedy run. If forcedFirst >= 0, that material is picked first (if it has
+     * non-zero reduction), then the standard greedy continues.
+     * Returns the counts[] array after greedy + pruning.
+     */
+    private static int[] greedyCounts(int[] needed, List<Material> materials, int forcedFirst) {
         int[] remaining = needed.clone();
         int[] counts = new int[materials.size()];
 
-        boolean anyNeeded = false;
-        for (int n : remaining) if (n > 0) { anyNeeded = true; break; }
-        if (!anyNeeded) return FeedPlan.empty(tier);
+        // Optional forced first pick
+        if (forcedFirst >= 0) {
+            counts[forcedFirst]++;
+            int[] b = materials.get(forcedFirst).bonuses();
+            for (int s = 0; s < 8; s++) remaining[s] = Math.max(remaining[s] - b[s], 0);
+        }
 
         int maxIter = 2000;
         while (maxIter-- > 0) {
@@ -178,9 +227,7 @@ public final class FeedOptimizer {
             for (int s = 0; s < 8; s++) remaining[s] = Math.max(remaining[s] - bonuses[s], 0);
         }
 
-        // Prune over-allocated feeds: if removing one unit of a material leaves all
-        // stats still satisfied (surplus >= bonus), remove it.
-        // Recompute surplus from counts since remaining[] was clamped to 0.
+        // Prune: remove any material unit whose removal still satisfies all needs.
         int[] surplus = new int[8];
         for (int mi = 0; mi < materials.size(); mi++) {
             if (counts[mi] == 0) continue;
@@ -206,16 +253,7 @@ public final class FeedOptimizer {
             }
         }
 
-        List<FeedPlan.MaterialCount> result = new ArrayList<>();
-        int total = 0;
-        for (int mi = 0; mi < materials.size(); mi++) {
-            if (counts[mi] > 0) {
-                result.add(new FeedPlan.MaterialCount(materials.get(mi), counts[mi]));
-                total += counts[mi];
-            }
-        }
-
-        return new FeedPlan(result, total, total * 6, trainingNote, tier);
+        return counts;
     }
 
     private FeedOptimizer() {}

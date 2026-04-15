@@ -96,13 +96,49 @@ public final class FeedOverlayRenderer {
 
         lines.add(new String[]{"header", label + "  (Tier " + plan.tier() + ")"});
         lines.add(null);
-        if (label.equals("Optimal Path")) {
+
+        String trainingNote = plan.trainingNote();
+        int preFeedCount = plan.preFeedCount();
+
+        if (trainingNote == null) {
+            // Phase A: no training needed
             lines.add(new String[]{"good", "  No training required"});
             lines.add(null);
         }
 
         if (plan.materials().isEmpty()) {
             lines.add(new String[]{"good", "  Already at max!"});
+        } else if (trainingNote != null && preFeedCount > 0) {
+            // Phase C: cascading unlock — interleave two train steps with materials
+            // trainingNote format: "Train X to N, feed K×Mat, train X to M"
+            String[] parts = trainingNote.split(", feed [^,]+, train ", 2);
+            String preTrain  = "  " + parts[0];                               // "  Train X to N"
+            String postTrain = parts.length > 1 ? "  Train " + parts[1] : ""; // "  Train X to M"
+
+            lines.add(new String[]{"train", preTrain});
+            List<FeedPlan.MaterialCount> mats = plan.materials();
+            for (int i = 0; i < preFeedCount && i < mats.size(); i++) {
+                FeedPlan.MaterialCount mc = mats.get(i);
+                String matLine = String.format("  %2dx  %s", mc.count(), mc.material().name());
+                lines.add(new String[]{"material", matLine, buildStatSuffix(mc.material().bonuses(), mc.count())});
+            }
+            if (!postTrain.isEmpty()) {
+                lines.add(new String[]{"train", postTrain});
+            }
+            for (int i = preFeedCount; i < mats.size(); i++) {
+                FeedPlan.MaterialCount mc = mats.get(i);
+                String matLine = String.format("  %2dx  %s", mc.count(), mc.material().name());
+                lines.add(new String[]{"material", matLine, buildStatSuffix(mc.material().bonuses(), mc.count())});
+            }
+        } else if (trainingNote != null) {
+            // Phase B: single training step before all materials
+            // trainingNote format: "Train X to N (free in-game training)"
+            String trainLine = "  " + trainingNote.replaceFirst("\\s*\\(free in-game training\\)", "");
+            lines.add(new String[]{"train", trainLine});
+            for (FeedPlan.MaterialCount mc : plan.materials()) {
+                String matLine = String.format("  %2dx  %s", mc.count(), mc.material().name());
+                lines.add(new String[]{"material", matLine, buildStatSuffix(mc.material().bonuses(), mc.count())});
+            }
         } else {
             for (FeedPlan.MaterialCount mc : plan.materials()) {
                 String matLine = String.format("  %2dx  %s", mc.count(), mc.material().name());

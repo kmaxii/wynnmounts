@@ -140,15 +140,13 @@ class FeedOptimizerTest {
     // Phase A (T1):  greedy picks Oak Paper + Gudgeon Oil → 9 feeds.
     //
     // Phase B (T10, unlocked via altitude.limit=10):
-    //   greedySolve with T10 mats → 3×Birch Paper + 5×Trout Oil = 8 feeds;
-    //   pruning removes one excess Birch Paper → 7 feeds.
+    //   greedySolve with T10 mats → 2×Birch Paper + 5×Trout Oil = 7 feeds.
     //
-    // Phase C (T_mid=10, T_target=30, stat=Altitude):
-    //   gap = 30−10 = 20, best T10 mat for altitude = Birch Paper (bonus=10)
-    //   preFeeds = ceil(20/10) = 2
-    //   remainingAfterPre: altitude=10, handling=33
-    //   T30 greedySolve: 3×Carp Oil + 1×Acacia Paper = 4 feeds
-    //   total = 2 + 4 = 6 < 7  →  Phase C wins!
+    // Phase C finds 6 feeds via either:
+    //   T_mid=10, T_target=20, stat=Altitude: 1 pre-feed + 5 T20 = 6 feeds, OR
+    //   T_mid=10, T_target=30, stat=Altitude: 2 pre-feeds + 4 T30 = 6 feeds.
+    // Either is a valid optimal result — we assert 6 feeds and that Altitude is the
+    // bootstrapped stat, but not a specific tier (both 20 and 30 are correct).
 
     @Test
     void testCascadingTierUnlock_PhaseC() {
@@ -161,11 +159,53 @@ class FeedOptimizerTest {
         FeedResult r = FeedOptimizer.solve(stats);
 
         assertTrue(r.hasImprovement(), "Phase C should find a 6-feed plan better than Phase A/B");
-        assertEquals(30, r.optimalPlan().tier(), "Optimal plan should use Tier 30 materials");
-        assertEquals(6,  r.optimalPlan().totalFeeds(), "Phase C: 2 pre-feeds + 4 T30 = 6 total");
+        assertTrue(r.optimalPlan().tier() >= 20, "Optimal tier should be ≥ 20 (Phase C unlock)");
+        assertEquals(6, r.optimalPlan().totalFeeds(), "Phase C: pre-feeds + target-tier feeds = 6 total");
         assertNotNull(r.optimalPlan().trainingNote());
         assertTrue(r.optimalPlan().trainingNote().contains("Altitude"),
                 "Training note should mention the bootstrapped stat");
+    }
+
+    // ── Test 9: all stats 1/10/30 — full cascading T10→T30 path ─────────────────
+    //
+    // Screenshot scenario: gen-0 horse saddle, every stat current=1, limit=10, max=30.
+    //
+    // Phase A (T1): 14 feeds (verified in Test 6).
+    //
+    // Phase C (tMid=10, tTarget=30, stat=Altitude):
+    //   Train Altitude to 10 (free — limit=10 meets threshold)
+    //   Feed 2× Birch Paper (T10, alt+10 each) → altitude limit 10→30
+    //   Train Altitude to 30 (free — limit now=30)
+    //   T30 greedySolve on remaining [20,20,0,20,20,20,10,20]:
+    //     picks Sandstone Ingot, Acacia Plank, Carp Meat, Malt String,
+    //           Sandstone Gem, Carp Oil×2, Malt Grains = 8 feeds
+    //   total = 2 + 8 = 10 < 14  →  Phase C wins!
+    //
+    // Expected optimal path the player should follow:
+    //   train altitude to 10
+    //   feed birch paper ×2
+    //   train altitude to 30
+    //   feed malt grains, sandstone gem, acacia plank, malt string,
+    //         carp meat, sandstone ingot, carp oil ×2
+
+    @Test
+    void testAllStats_1_10_30_cascadingUnlockOptimal() {
+        FeedResult r = FeedOptimizer.solve(uniform(1, 10, 30));
+
+        assertTrue(r.hasImprovement(), "Phase C should beat 14-feed T1 plan");
+        assertEquals(30, r.optimalPlan().tier(),
+                "Optimal plan should use Tier 30 materials (cascading T10→T30 via Altitude)");
+        assertEquals(10, r.optimalPlan().totalFeeds(),
+                "2 Birch Paper pre-feeds + 8 T30 feeds = 10 total");
+        assertNotNull(r.optimalPlan().trainingNote());
+        assertTrue(r.optimalPlan().trainingNote().contains("Altitude"),
+                "Training note should name the bootstrapped stat (Altitude)");
+        // preFeedCount must be 1 (one MaterialCount entry = Birch Paper ×2),
+        // not 2 (feed count). The renderer uses it as a list-entry index.
+        assertEquals(1, r.optimalPlan().preFeedCount(),
+                "preFeedCount is a list-entry count, not a feed count: only Birch Paper is a pre-feed");
+        assertEquals("Birch Paper", r.optimalPlan().materials().get(0).material().name(),
+                "First material entry must be the pre-feed material (Birch Paper)");
     }
 
     // ── Test 7: fully max-level mount at T115 ─────────────────────────────────
