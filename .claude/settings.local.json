@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew build:*)",
+      "Bash(curl -sv \"https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/release/maven/v1/me/djtheredstoner/DevAuth-fabric/maven-metadata.xml\")",
+      "Bash(curl -s \"https://api.github.com/repos/DJtheRedstoner/DevAuth/releases/latest\")",
+      "Bash(curl -L -o /Users/maxi/Documents/Repos/vow/wynnmounts/libs/DevAuth-fabric-1.2.2.jar \"https://github.com/DJtheRedstoner/DevAuth/releases/download/v1.2.2/DevAuth-fabric-1.2.2.jar\")",
+      "Bash(jar tf:*)",
+      "Bash(grep -E \"\\\\.class$\")",
+      "Bash(curl -s \"https://api.modrinth.com/v2/project/devauth/version?loaders=[%22fabric%22]&game_versions=[%221.21.1%22]\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(v['version_number'], [f['url'] for f in v['files']]\\) for v in data[:3]]\")",
+      "Bash(curl -s \"https://api.modrinth.com/v2/project/devauth/version\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(v['version_number'], [f['url'] for f in v['files']]\\) for v in data[:5]]\")",
+      "Bash(./gradlew :fabric:build --quiet)",
+      "Bash(./gradlew :common:jar :fabric:jar --quiet)",
+      "Bash(./gradlew :common:jar --configure-on-demand --quiet)",
+      "Read(//private/tmp/**)",
+      "Bash(mkdir -p devauth-build/deps)",
+      "Bash(curl -sL \"https://repo1.maven.org/maven2/com/electronwill/night-config/toml/3.6.7/toml-3.6.7.jar\" -o devauth-build/deps/toml.jar)",
+      "Bash(curl -sL \"https://repo1.maven.org/maven2/com/electronwill/night-config/core/3.6.7/core-3.6.7.jar\" -o devauth-build/deps/core.jar)",
+      "Bash(curl -sL \"https://libraries.minecraft.net/com/mojang/authlib/6.0.55/authlib-6.0.55.jar\" -o devauth-build/deps/authlib.jar)",
+      "Bash(grep -E '\\\\.\\(md|txt|json\\)$')",
+      "Bash(wc:*)",
+      "Bash(./gradlew compileJava -Xdiags:verbose)",
+      "WebFetch(domain:wynn.azael.moe)",
+      "Bash(./gradlew test:*)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_fill_form"
+    ]
+  }
+}

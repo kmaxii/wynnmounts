@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "wynnmounts",
+  "version": "${version}",
+  "name": "Wynncraft Mounts Helper",
+  "description": "",
+  "authors": [],
+  "contact": {
+    "repo": "https://github.com/maxi/wynnmounts"
+  },
+  "license": "All-Rights-Reserved",
+  "icon": "assets/wynnmounts/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "me.kmaxi.wynnmounts.client.WynncraftMountsHelperClient"
+    ],
+    "main": [
+      "me.kmaxi.wynnmounts.WynncraftMountsHelper"
+    ]
+  },
+  "mixins": [
+    "wynnmounts.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
