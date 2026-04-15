@@ -43,7 +43,7 @@ public final class FeedOverlayRenderer {
             int startY = (screenH - panelH) / 2;
             drawPanel(gg, font, startX, startY, panelW, panelH, lines);
         } else {
-            List<String[]> topLines    = buildPlanLines(result.currentTierPlan(), "Current Tier");
+            List<String[]> topLines    = buildPlanLines(result.currentTierPlan(), "Current Tier", true);
             List<String[]> bottomLines = buildPlanLines(result.optimalPlan(), "Training Path");
             int topW    = panelWidth(font, topLines);
             int bottomW = panelWidth(font, bottomLines);
@@ -92,6 +92,10 @@ public final class FeedOverlayRenderer {
     }
 
     private static List<String[]> buildPlanLines(FeedPlan plan, String label) {
+        return buildPlanLines(plan, label, false);
+    }
+
+    private static List<String[]> buildPlanLines(FeedPlan plan, String label, boolean suppressNoTraining) {
         List<String[]> lines = new ArrayList<>();
 
         lines.add(new String[]{"header", label + "  (Tier " + plan.tier() + ")"});
@@ -100,8 +104,8 @@ public final class FeedOverlayRenderer {
         String trainingNote = plan.trainingNote();
         int preFeedCount = plan.preFeedCount();
 
-        if (trainingNote == null) {
-            // Phase A: no training needed
+        if (trainingNote == null && !suppressNoTraining) {
+            // Phase A: no training needed — only shown when this is the sole panel
             lines.add(new String[]{"good", "  No training required"});
             lines.add(null);
         }

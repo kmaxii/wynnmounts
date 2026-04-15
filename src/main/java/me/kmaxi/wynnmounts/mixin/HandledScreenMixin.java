@@ -1,6 +1,5 @@
 package me.kmaxi.wynnmounts.mixin;
 
-import me.kmaxi.wynnmounts.WynncraftMountsHelper;
 import me.kmaxi.wynnmounts.data.FeedResult;
 import me.kmaxi.wynnmounts.data.MountStats;
 import me.kmaxi.wynnmounts.optimizer.FeedOptimizer;
@@ -12,7 +11,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemLore;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -62,26 +60,6 @@ public class HandledScreenMixin {
         ItemStack stack = hoveredSlot.getItem();
         ItemLore lore = stack.get(DataComponents.LORE);
 
-        WynncraftMountsHelper.LOGGER.info("=== Hovered Item [Screen: '{}'] [Slot {}] ===", screenTitle, slotId);
-        WynncraftMountsHelper.LOGGER.info("Name: {}", stack.getDisplayName().getString());
-
-        if (lore != null) {
-            List<Component> lines = lore.lines();
-            WynncraftMountsHelper.LOGGER.info("Lore ({} lines):", lines.size());
-            for (int i = 0; i < lines.size(); i++) {
-                WynncraftMountsHelper.LOGGER.info("  [{}] '{}'", i, lines.get(i).getString());
-            }
-        } else {
-            WynncraftMountsHelper.LOGGER.info("No lore found.");
-        }
-
-        CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
-        if (customData != null) {
-            WynncraftMountsHelper.LOGGER.info("CustomData NBT: {}", customData.copyTag());
-        }
-
-        WynncraftMountsHelper.LOGGER.info("All components: {}", stack.getComponents());
-
         // Only process mount items
         if (lore == null) return;
         boolean isMountItem = lore.lines().stream().anyMatch(l -> l.getString().contains("Potential"));
@@ -91,11 +69,6 @@ public class HandledScreenMixin {
         wynnmounts$cachedStats = MountStats.parse(lore.lines());
         if (wynnmounts$cachedStats != null) {
             wynnmounts$cachedResult = FeedOptimizer.solve(wynnmounts$cachedStats);
-            WynncraftMountsHelper.LOGGER.info("Feed plans computed: current={} feeds, optimal={} feeds",
-                    wynnmounts$cachedResult.currentTierPlan().totalFeeds(),
-                    wynnmounts$cachedResult.optimalPlan().totalFeeds());
-        } else {
-            WynncraftMountsHelper.LOGGER.warn("MountStats.parse() returned null — stat lines not matched");
         }
 
         // Save to markdown (existing behaviour)
@@ -119,9 +92,8 @@ public class HandledScreenMixin {
         try {
             Path path = Paths.get("wynnmounts_data.md");
             Files.writeString(path, sb.toString(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            WynncraftMountsHelper.LOGGER.info("Saved mount data for '{}'", name);
         } catch (IOException e) {
-            WynncraftMountsHelper.LOGGER.error("Failed to write mount data", e);
+            // ignore write failures silently
         }
     }
 
