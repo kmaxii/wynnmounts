@@ -8,7 +8,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.component.ItemLore;
 import org.slf4j.Logger;
@@ -53,16 +52,12 @@ public class WynncraftMountsHelperClient implements ClientModInitializer {
                 LOGGER.info("[wynnmounts] match={}", match.map(Material::name).orElse("NONE"));
                 if (match.isPresent()) {
                     Material mat = match.get();
-                    MutableComponent header = Component.literal("Stat bonuses per feed:")
-                            .withStyle(ChatFormatting.GRAY);
-                    lines.add(header);
                     for (int i = 0; i < MountStats.STAT_NAMES.length; i++) {
                         if (mat.bonuses()[i] > 0) {
-                            lines.add(Component.literal("  " + MountStats.STAT_NAMES[i] + ": +" + mat.bonuses()[i])
+                            lines.add(Component.literal(MountStats.STAT_NAMES[i] + ": +" + mat.bonuses()[i])
                                     .withStyle(ChatFormatting.GREEN));
                         }
                     }
-                    LOGGER.info("[wynnmounts] added {} lines", lines.size());
                 }
                 return;
             }
