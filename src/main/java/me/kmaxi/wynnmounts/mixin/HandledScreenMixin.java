@@ -60,18 +60,6 @@ public class HandledScreenMixin {
         ItemStack stack = hoveredSlot.getItem();
         ItemLore lore = stack.get(DataComponents.LORE);
 
-        // Only process mount items
-        if (lore == null) return;
-        boolean isMountItem = lore.lines().stream().anyMatch(l -> l.getString().contains("Potential"));
-        if (!isMountItem) return;
-
-        // Parse stats and compute feed plans
-        wynnmounts$cachedStats = MountStats.parse(lore.lines());
-        if (wynnmounts$cachedStats != null) {
-            wynnmounts$cachedResult = FeedOptimizer.solve(wynnmounts$cachedStats);
-        }
-
-        // Save to markdown (existing behaviour)
         String name = stripPrivateUse(stack.getDisplayName().getString());
         StringBuilder sb = new StringBuilder();
 
@@ -82,10 +70,29 @@ public class HandledScreenMixin {
             sb.append("# Container: ").append(titleDisplay).append("\n\n");
         }
 
-        sb.append("## ").append(name).append("\n");
-        for (Component line : lore.lines()) {
-            String text = stripPrivateUse(line.getString());
-            if (!text.isEmpty()) sb.append("- ").append(text).append("\n");
+        boolean isMountItem = lore != null && lore.lines().stream().anyMatch(l -> l.getString().contains("Potential"));
+
+        if (isMountItem) {
+            // Parse stats and compute feed plans
+            wynnmounts$cachedStats = MountStats.parse(lore.lines());
+            if (wynnmounts$cachedStats != null) {
+                wynnmounts$cachedResult = FeedOptimizer.solve(wynnmounts$cachedStats);
+            }
+        }
+
+        // Log all items (mount and non-mount) for data collection
+        sb.append("## ").append(name).append(" [item=").append(stack.getItem().toString()).append("]\n");
+        if (lore != null) {
+            for (Component line : lore.lines()) {
+                String text = stripPrivateUse(line.getString());
+                String raw = line.getString();
+                if (!text.isEmpty()) sb.append("- ").append(text);
+                else if (!raw.isEmpty()) sb.append("- (non-ascii) ");
+                else continue;
+                sb.append("\n");
+            }
+        } else {
+            sb.append("- (no lore)\n");
         }
         sb.append("\n");
 
