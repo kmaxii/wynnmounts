@@ -20,15 +20,9 @@ public final class FeedOverlayRenderer {
     private static final int TRAIN_COLOR   = 0xFFFFFF55; // yellow
     private static final int GOOD_COLOR    = 0xFF55FF55; // green
     private static final int DIVIDER_COLOR = 0xFF444455;
-    private static final int STAT_COLOR    = 0xFF888899; // muted blue-gray for stat suffixes
-
     private static final int PANEL_PAD   = 8;
     private static final int LINE_H      = 10;
     private static final int GAP         = 6; // gap between stacked panels
-    private static final int SUFFIX_GAP  = 6; // pixels between material name and stat suffix
-
-    // 3-char abbreviations matching MountStats.STAT_NAMES index order
-    private static final String[] STAT_ABBR = {"Spd", "Acc", "Alt", "Ene", "Hnd", "Tgh", "Bst", "Trn"};
 
     public static void render(GuiGraphics gg, Screen screen, FeedResult result) {
         Font font = Minecraft.getInstance().font;
@@ -83,10 +77,6 @@ public final class FeedOverlayRenderer {
                 default         -> VALUE_COLOR;
             };
             gg.drawString(font, text, cx, cy, color, false);
-            if (line.length > 2 && line[2] != null) {
-                int suffixX = cx + font.width(text) + SUFFIX_GAP;
-                gg.drawString(font, line[2], suffixX, cy, STAT_COLOR, false);
-            }
             cy += LINE_H;
         }
     }
@@ -124,7 +114,7 @@ public final class FeedOverlayRenderer {
             for (int i = 0; i < preFeedCount && i < mats.size(); i++) {
                 FeedPlan.MaterialCount mc = mats.get(i);
                 String matLine = String.format("  %2dx  %s", mc.count(), mc.material().name());
-                lines.add(new String[]{"material", matLine, buildStatSuffix(mc.material().bonuses(), mc.count())});
+                lines.add(new String[]{"material", matLine});
             }
             if (!postTrain.isEmpty()) {
                 lines.add(new String[]{"train", postTrain});
@@ -132,7 +122,7 @@ public final class FeedOverlayRenderer {
             for (int i = preFeedCount; i < mats.size(); i++) {
                 FeedPlan.MaterialCount mc = mats.get(i);
                 String matLine = String.format("  %2dx  %s", mc.count(), mc.material().name());
-                lines.add(new String[]{"material", matLine, buildStatSuffix(mc.material().bonuses(), mc.count())});
+                lines.add(new String[]{"material", matLine});
             }
         } else if (trainingNote != null) {
             // Phase B: single training step before all materials
@@ -141,13 +131,12 @@ public final class FeedOverlayRenderer {
             lines.add(new String[]{"train", trainLine});
             for (FeedPlan.MaterialCount mc : plan.materials()) {
                 String matLine = String.format("  %2dx  %s", mc.count(), mc.material().name());
-                lines.add(new String[]{"material", matLine, buildStatSuffix(mc.material().bonuses(), mc.count())});
+                lines.add(new String[]{"material", matLine});
             }
         } else {
             for (FeedPlan.MaterialCount mc : plan.materials()) {
                 String matLine = String.format("  %2dx  %s", mc.count(), mc.material().name());
-                String suffix  = buildStatSuffix(mc.material().bonuses(), mc.count());
-                lines.add(new String[]{"material", matLine, suffix});
+                lines.add(new String[]{"material", matLine});
             }
         }
 
@@ -159,18 +148,6 @@ public final class FeedOverlayRenderer {
         return lines;
     }
 
-    /** Returns e.g. "Spd+8 Acc+4" for the total stat contribution of count feeds of this material. */
-    private static String buildStatSuffix(int[] bonuses, int count) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < bonuses.length; i++) {
-            if (bonuses[i] > 0) {
-                if (!sb.isEmpty()) sb.append(' ');
-                sb.append(STAT_ABBR[i]).append('+').append(bonuses[i] * count);
-            }
-        }
-        return sb.isEmpty() ? null : sb.toString();
-    }
-
     private static int panelHeight(List<String[]> lines) {
         return PANEL_PAD * 2 + lines.size() * LINE_H;
     }
@@ -179,9 +156,7 @@ public final class FeedOverlayRenderer {
         int maxW = 0;
         for (String[] line : lines) {
             if (line == null) continue;
-            int w = font.width(line[1]);
-            if (line.length > 2 && line[2] != null) w += SUFFIX_GAP + font.width(line[2]);
-            maxW = Math.max(maxW, w);
+            maxW = Math.max(maxW, font.width(line[1]));
         }
         return maxW + PANEL_PAD * 2;
     }
