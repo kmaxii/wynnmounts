@@ -123,7 +123,6 @@ class FeedOptimizerTest {
     void testTier1AllStats_noOverAllocation() {
         // All stats: current=1, limit=10, max=30 → needed=20 each; highestCurrent=1 → T1
         // Phase A: current-tier (T1) plan must be 14 feeds (not 15 — greedy must not over-allocate).
-        // Verified against https://wynn.azael.moe/
         // Phase C may now find improvement via cascading tier unlock.
         FeedResult r = FeedOptimizer.solve(uniform(1, 10, 30));
 
@@ -217,7 +216,7 @@ class FeedOptimizerTest {
     //
     // highestCurrent = 40 (Toughness) → currentTier = T40
     //
-    // Phase A (T40, no training): 16 feeds — verified against wynn.azael.moe "No Training".
+    // Phase A (T40, no training): 16 feeds.
     //
     // Phase B: no stat has limit ≥ 50, so no free training to T50+ → no Phase B improvement.
     //
@@ -232,7 +231,7 @@ class FeedOptimizerTest {
     //   T60 greedy: 10 feeds (3×Cobalt Ingot, 2×Cobalt Gem, 2×Millet String, 2×Koi Oil,
     //                         1×Millet Grains)
     //   Total: 2 + 10 = 12 < 16 → improvement!
-    //   Verified against wynn.azael.moe "Max Training".
+    //   (verified manually against optimal plan)
 
     @Test
     void testWyvernMount_PhaseCWithCurrentTier() {
@@ -276,7 +275,6 @@ class FeedOptimizerTest {
         //   Heather String  → Acceleration(+5),  Handling(+13),    Boost(+23)
         //   Mahseer Oil     → Altitude(+5),      Handling(+23),    Training(+13)
         //
-        // Verified against https://wynn.azael.moe/ — No Training = 8 feeds.
         // T115 is already the highest tier, so no training improvement exists.
 
         FeedResult r = FeedOptimizer.solve(uniform(115, 115, 146));

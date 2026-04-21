@@ -50,4 +50,4 @@ The built jar lands in `build/libs/`. DevAuth (`me.djtheredstoner:DevAuth-fabric
 `wynnmounts.mixins.json` registers `HandledScreenMixin` on `AbstractContainerScreen`. The mixin also writes raw lore to `wynnmounts_data.md` in the run directory (data-collection behaviour for debugging).
 
 ### Tests
-`FeedOptimizerTest` and `MaterialRegistryTest` in `src/test/` run without any Minecraft classes — the optimizer and registry are pure Java. Tests document expected feed counts verified against the external reference at `wynn.azael.moe`.
+`FeedOptimizerTest` and `MaterialRegistryTest` in `src/test/` run without any Minecraft classes — the optimizer and registry are pure Java. Tests document expected feed counts verified manually against known optimal plans.
