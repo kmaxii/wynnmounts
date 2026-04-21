@@ -72,7 +72,7 @@ public final class FeedOptimizer {
         //          train to T30 for free, finish with T30 materials.
         for (int tMidIdx = 0; tMidIdx < MaterialRegistry.TIER_THRESHOLDS.length; tMidIdx++) {
             int tMid = MaterialRegistry.TIER_THRESHOLDS[tMidIdx];
-            if (tMid <= currentTier) continue;
+            if (tMid < currentTier) continue;
 
             // T_mid is reachable only if some stat's limit already meets the threshold
             boolean tMidReachable = false;

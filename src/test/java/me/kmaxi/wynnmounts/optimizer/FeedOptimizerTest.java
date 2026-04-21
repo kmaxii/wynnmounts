@@ -208,6 +208,58 @@ class FeedOptimizerTest {
                 "First material entry must be the pre-feed material (Birch Paper)");
     }
 
+    // ── Test 10: Phase C with tMid = currentTier (Wyvern screenshot scenario) ──────────────
+    //
+    // Wyvern Reins from in-game screenshot:
+    //   Speed: 36/38/69 (needed=31), Acc: 38/39/51 (needed=12), Alt: 15/43/58 (needed=15),
+    //   Ene: 20/38/47 (needed=9),   Han: 25/42/98 (needed=56), Tou: 40/42/97 (needed=55),
+    //   Bst: 37/44/95 (needed=51),  Trn: 35/44/92 (needed=48)
+    //
+    // highestCurrent = 40 (Toughness) → currentTier = T40
+    //
+    // Phase A (T40, no training): 16 feeds — verified against wynn.azael.moe "No Training".
+    //
+    // Phase B: no stat has limit ≥ 50, so no free training to T50+ → no Phase B improvement.
+    //
+    // Phase C bug (current code): loop starts at tMid > currentTier=40, so T40 pre-feeds
+    //   are never considered as bootstrapping material. bestOptimal stays at planA.
+    //
+    // Phase C fix (tMid >= currentTier=40): tries tMid=40, tTarget=60, stat=Boost.
+    //   Boost: limit=44, max=95. gap to T60 = 60-44 = 16.
+    //   Best T40 Boost material: Hops String (+12 Boost). preFeeds = ceil(16/12) = 2.
+    //   After 2×Hops String: Boost limit 44→68 ≥ 60 → train Boost to 60 (free).
+    //   Remaining: [31, 6, 15, 9, 42, 55, 27, 48]
+    //   T60 greedy: 10 feeds (3×Cobalt Ingot, 2×Cobalt Gem, 2×Millet String, 2×Koi Oil,
+    //                         1×Millet Grains)
+    //   Total: 2 + 10 = 12 < 16 → improvement!
+    //   Verified against wynn.azael.moe "Max Training".
+
+    @Test
+    void testWyvernMount_PhaseCWithCurrentTier() {
+        StatEntry spd = new StatEntry(36, 38, 69);
+        StatEntry acc = new StatEntry(38, 39, 51);
+        StatEntry alt = new StatEntry(15, 43, 58);
+        StatEntry ene = new StatEntry(20, 38, 47);
+        StatEntry han = new StatEntry(25, 42, 98);
+        StatEntry tou = new StatEntry(40, 42, 97);
+        StatEntry bst = new StatEntry(37, 44, 95);
+        StatEntry trn = new StatEntry(35, 44, 92);
+        MountStats stats = new MountStats(MountType.UNKNOWN, spd, acc, alt, ene, han, tou, bst, trn);
+
+        FeedResult r = FeedOptimizer.solve(stats);
+
+        assertTrue(r.hasImprovement(),
+                "Phase C (tMid=currentTier=40) should find a 12-feed T60 plan better than Phase A");
+        assertEquals(40, r.currentTierPlan().tier());
+        assertEquals(60, r.optimalPlan().tier(),
+                "Optimal plan should use Tier 60 materials (pre-feed Boost to 60 via Hops String)");
+        assertEquals(12, r.optimalPlan().totalFeeds(),
+                "2 Hops String pre-feeds + 10 T60 feeds = 12 total (vs 16 No Training)");
+        assertNotNull(r.optimalPlan().trainingNote());
+        assertTrue(r.optimalPlan().trainingNote().contains("Boost"),
+                "Training note should mention Boost as the bootstrapped stat");
+    }
+
     // ── Test 7: fully max-level mount at T115 ─────────────────────────────────
 
     @Test
